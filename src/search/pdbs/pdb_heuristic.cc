@@ -4,6 +4,7 @@
 
 #include "../plugins/plugin.h"
 #include "../utils/markup.h"
+#include "../task_utils/task_properties.h"
 
 #include <limits>
 #include <memory>
@@ -31,6 +32,20 @@ int PDBHeuristic::compute_heuristic(const State &ancestor_state) {
     int h = pdb->get_value(state.get_unpacked_values());
     if (h == numeric_limits<int>::max())
         return DEAD_END;
+    
+    const vector<OperatorID> &preferred_ops = pdb->get_preferred_operators(state.get_unpacked_values());
+
+    for (OperatorID operator_no : preferred_ops) {
+        OperatorProxy op = task_proxy.get_operators()[operator_no];
+        assert(task_properties::is_applicable(op, state));
+        set_preferred(op);
+    } 
+
+   /* // print information
+    int applicable_count = pdb->get_applicable_count(state.get_unpacked_values());
+
+    std::cout << "h=" << h << " ; preferred: " << preferred_ops.size() << " ; applicable: " << applicable_count << std::endl;
+     */ 
     return h;
 }
 
@@ -73,7 +88,7 @@ public:
         document_property("admissible", "yes");
         document_property("consistent", "yes");
         document_property("safe", "yes");
-        document_property("preferred operators", "no");
+        document_property("preferred operators", "yes");
     }
 
     virtual shared_ptr<PDBHeuristic> create_component(

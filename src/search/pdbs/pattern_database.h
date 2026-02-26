@@ -46,8 +46,10 @@ class PatternDatabase {
       dead-ends are represented by numeric_limits<int>::max()
     */
     std::vector<int> distances;
+    std::vector<std::vector<OperatorID>> preferred_operators; // store the preferred operators (one or multiple) for each abstract state 
+    std::vector<int> applicable_op_counts; // only needed for outputs
 public:
-    PatternDatabase(Projection &&projection, std::vector<int> &&distances);
+    PatternDatabase(Projection &&projection, std::vector<int> &&distances, std::vector<std::vector<OperatorID>> &&preferred_operators, std::vector<int> &&applicable_op_counts);
     int get_value(const std::vector<int> &state) const;
 
     const Pattern &get_pattern() const {
@@ -57,6 +59,14 @@ public:
     // The size of the PDB is the number of abstract states.
     int get_size() const {
         return projection.get_num_abstract_states();
+    }
+
+    const std::vector<OperatorID> &get_preferred_operators(const std::vector<int> &state) const {
+        return preferred_operators[projection.rank(state)];
+    }
+
+    int get_applicable_count(const std::vector<int> &state) const {
+        return applicable_op_counts[projection.rank(state)];
     }
 
     /*

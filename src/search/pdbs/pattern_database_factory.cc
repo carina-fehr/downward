@@ -27,6 +27,8 @@ class PatternDatabaseFactory {
     vector<int> distances;
     vector<int> generating_op_ids;
     vector<vector<OperatorID>> wildcard_plan;
+    vector<vector<OperatorID>> preferred_operators;
+    vector<int> applicable_op_counts;
 
     void compute_variable_to_index(const Pattern &pattern);
 
@@ -99,7 +101,7 @@ public:
     ~PatternDatabaseFactory() = default;
 
     shared_ptr<PatternDatabase> extract_pdb() {
-        return make_shared<PatternDatabase>(move(projection), move(distances));
+        return make_shared<PatternDatabase>(move(projection), move(distances), move(preferred_operators), move(applicable_op_counts));
     }
 
     vector<vector<OperatorID>> &&extract_wildcard_plan() {
@@ -275,6 +277,9 @@ bool PatternDatabaseFactory::is_goal_state(int state_index) const {
 void PatternDatabaseFactory::compute_distances(
     const MatchTree &match_tree, bool compute_plan) {
     distances.reserve(projection.get_num_abstract_states());
+    preferred_operators.resize(projection.get_num_abstract_states()); //creates vector where each entry is a vector
+    applicable_op_counts.resize(projection.get_num_abstract_states());
+
     // first implicit entry: priority, second entry: index for an abstract state
     priority_queues::AdaptiveQueue<int> pq;
 
@@ -316,6 +321,9 @@ void PatternDatabaseFactory::compute_distances(
         vector<int> applicable_operator_ids;
         match_tree.get_applicable_operator_ids(
             state_index, applicable_operator_ids);
+        
+        applicable_op_counts[state_index] = applicable_operator_ids.size(); // stores amount of applicable ops in this state
+
         for (int op_id : applicable_operator_ids) {
             const AbstractOperator &op = abstract_ops[op_id];
             int predecessor = state_index + op.get_hash_effect();
@@ -325,6 +333,13 @@ void PatternDatabaseFactory::compute_distances(
                 pq.push(alternative_cost, predecessor);
                 if (compute_plan) {
                     generating_op_ids[predecessor] = op_id;
+                }
+
+                preferred_operators[predecessor].clear(); // clear because we found something better
+                preferred_operators[predecessor].push_back(OperatorID(abstract_ops[op_id].get_concrete_op_id())); // add element to the end of the vector
+            } else if (alternative_cost == distances[predecessor]) {// found an equal operator (not better but also not worse)
+                if (op.get_cost() > 0) {
+                    preferred_operators[predecessor].push_back(OperatorID(abstract_ops[op_id].get_concrete_op_id())); // also want to add this  the POs
                 }
             }
         }

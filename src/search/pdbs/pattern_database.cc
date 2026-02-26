@@ -51,8 +51,8 @@ int Projection::unrank(int index, int var) const {
 }
 
 PatternDatabase::PatternDatabase(
-    Projection &&projection, vector<int> &&distances)
-    : projection(move(projection)), distances(move(distances)) {
+    Projection &&projection, vector<int> &&distances, vector<vector<OperatorID>> &&preferred_operators, vector<int> &&applicable_op_counts)
+    : projection(move(projection)), distances(move(distances)), preferred_operators(move(preferred_operators)), applicable_op_counts(move(applicable_op_counts)) {
 }
 
 int PatternDatabase::get_value(const vector<int> &state) const {
