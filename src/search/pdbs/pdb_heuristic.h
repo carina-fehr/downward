@@ -5,14 +5,21 @@
 
 #include "../heuristic.h"
 
+namespace successor_generator {
+class SuccessorGenerator;
+}
+
 namespace pdbs {
 class PatternDatabase;
 
 // Implements a heuristic for a single PDB.
 class PDBHeuristic : public Heuristic {
     std::shared_ptr<PatternDatabase> pdb;
+    bool test_distances;
 protected:
     virtual int compute_heuristic(const State &ancestor_state) override;
+    const int use_preferred_operators;
+    std::unique_ptr<successor_generator::SuccessorGenerator> successor_generator;
 public:
     /*
       Important: It is assumed that the pattern (passed via
@@ -26,6 +33,14 @@ public:
     */
     PDBHeuristic(
         const std::shared_ptr<PatternGenerator> &pattern_generator,
+        int use_preferred_operators,
+        const std::shared_ptr<AbstractTask> &transform, bool cache_estimates,
+        const std::string &description, utils::Verbosity verbosity);
+
+    PDBHeuristic(
+        const std::shared_ptr<PatternGenerator> &pattern_generator,
+        bool test_distances, 
+        int use_preferred_operators, 
         const std::shared_ptr<AbstractTask> &transform, bool cache_estimates,
         const std::string &description, utils::Verbosity verbosity);
 };

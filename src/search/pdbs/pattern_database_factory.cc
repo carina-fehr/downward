@@ -29,6 +29,7 @@ class PatternDatabaseFactory {
     vector<vector<OperatorID>> wildcard_plan;
     vector<vector<OperatorID>> preferred_operators;
     vector<int> applicable_op_counts;
+    int use_preferred_operators;
 
     void compute_variable_to_index(const Pattern &pattern);
 
@@ -97,7 +98,8 @@ public:
         const vector<int> &operator_costs = vector<int>(),
         bool compute_plan = false,
         const shared_ptr<utils::RandomNumberGenerator> &rng = nullptr,
-        bool compute_wildcard_plan = false);
+        bool compute_wildcard_plan = false,
+        int use_preferred_operators = 0);
     ~PatternDatabaseFactory() = default;
 
     shared_ptr<PatternDatabase> extract_pdb() {
@@ -335,9 +337,12 @@ void PatternDatabaseFactory::compute_distances(
                     generating_op_ids[predecessor] = op_id;
                 }
 
-                preferred_operators[predecessor].clear(); // clear because we found something better
-                preferred_operators[predecessor].push_back(OperatorID(abstract_ops[op_id].get_concrete_op_id())); // add element to the end of the vector
-            } else if (alternative_cost == distances[predecessor]) {// found an equal operator (not better but also not worse)
+                if (use_preferred_operators == 1) {
+                    preferred_operators[predecessor].clear(); // clear because we found something better
+                    preferred_operators[predecessor].push_back(OperatorID(abstract_ops[op_id].get_concrete_op_id())); // add element to the end of the vector
+                }
+                
+            } else if (alternative_cost == distances[predecessor] && use_preferred_operators == 1) {// found an equal operator (not better but also not worse)
                 if (op.get_cost() > 0) {
                     preferred_operators[predecessor].push_back(OperatorID(abstract_ops[op_id].get_concrete_op_id())); // also want to add this  the POs
                 }
@@ -412,10 +417,11 @@ PatternDatabaseFactory::PatternDatabaseFactory(
     const TaskProxy &task_proxy, const Pattern &pattern,
     const vector<int> &operator_costs, bool compute_plan,
     const shared_ptr<utils::RandomNumberGenerator> &rng,
-    bool compute_wildcard_plan)
+    bool compute_wildcard_plan, int use_preferred_operators)
     : task_proxy(task_proxy),
       variables(task_proxy.get_variables()),
-      projection(task_proxy, pattern) {
+      projection(task_proxy, pattern),
+      use_preferred_operators(use_preferred_operators) {
     assert(
         operator_costs.empty() ||
         operator_costs.size() == task_proxy.get_operators().size());
@@ -433,9 +439,10 @@ PatternDatabaseFactory::PatternDatabaseFactory(
 shared_ptr<PatternDatabase> compute_pdb(
     const TaskProxy &task_proxy, const Pattern &pattern,
     const vector<int> &operator_costs,
-    const shared_ptr<utils::RandomNumberGenerator> &rng) {
+    const shared_ptr<utils::RandomNumberGenerator> &rng,
+    int use_preferred_operators) {
     PatternDatabaseFactory pdb_factory(
-        task_proxy, pattern, operator_costs, false, rng);
+        task_proxy, pattern, operator_costs, false, rng, false, use_preferred_operators);
     return pdb_factory.extract_pdb();
 }
 
@@ -444,9 +451,10 @@ compute_pdb_and_plan(
     const TaskProxy &task_proxy, const Pattern &pattern,
     const vector<int> &operator_costs,
     const shared_ptr<utils::RandomNumberGenerator> &rng,
-    bool compute_wildcard_plan) {
+    bool compute_wildcard_plan, 
+    int use_preferred_operators) {
     PatternDatabaseFactory pdb_factory(
-        task_proxy, pattern, operator_costs, true, rng, compute_wildcard_plan);
+        task_proxy, pattern, operator_costs, true, rng, compute_wildcard_plan, use_preferred_operators);
     return {pdb_factory.extract_pdb(), pdb_factory.extract_wildcard_plan()};
 }
 }

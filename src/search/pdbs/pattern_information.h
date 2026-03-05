@@ -28,7 +28,7 @@ class PatternInformation {
     Pattern pattern;
     std::shared_ptr<PatternDatabase> pdb;
 
-    void create_pdb_if_missing();
+    void create_pdb_if_missing(int use_preferred_operators = 0);
 
     bool information_is_valid() const;
 public:
@@ -42,7 +42,7 @@ public:
     }
 
     const Pattern &get_pattern() const;
-    std::shared_ptr<PatternDatabase> get_pdb();
+    std::shared_ptr<PatternDatabase> get_pdb(int use_preferred_operators = 0);
 };
 }
 

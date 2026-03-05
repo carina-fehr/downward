@@ -5,6 +5,7 @@
 #include "../plugins/plugin.h"
 #include "../utils/markup.h"
 #include "../task_utils/task_properties.h"
+#include "../task_utils/successor_generator.h"
 
 #include <limits>
 #include <memory>
@@ -14,17 +15,28 @@ using namespace std;
 namespace pdbs {
 static shared_ptr<PatternDatabase> get_pdb_from_generator(
     const shared_ptr<AbstractTask> &task,
-    const shared_ptr<PatternGenerator> &pattern_generator) {
+    const shared_ptr<PatternGenerator> &pattern_generator, 
+    int use_preferred_operators) {
     PatternInformation pattern_info = pattern_generator->generate(task);
-    return pattern_info.get_pdb();
+    return pattern_info.get_pdb(use_preferred_operators);
 }
 
 PDBHeuristic::PDBHeuristic(
-    const shared_ptr<PatternGenerator> &pattern,
+    const shared_ptr<PatternGenerator> &pattern, 
+    int use_preferred_operators,
     const shared_ptr<AbstractTask> &transform, bool cache_estimates,
     const string &description, utils::Verbosity verbosity)
     : Heuristic(transform, cache_estimates, description, verbosity),
-      pdb(get_pdb_from_generator(task, pattern)) {
+      pdb(get_pdb_from_generator(task, pattern, use_preferred_operators)), test_distances(false), use_preferred_operators(use_preferred_operators), successor_generator(nullptr) {
+}
+
+PDBHeuristic::PDBHeuristic(
+    const shared_ptr<PatternGenerator> &pattern, bool test_distances,
+    int use_preferred_operators, 
+    const shared_ptr<AbstractTask> &transform, bool cache_estimates,
+    const string &description, utils::Verbosity verbosity)
+    : Heuristic(transform, cache_estimates, description, verbosity),
+      pdb(get_pdb_from_generator(task, pattern, use_preferred_operators)), test_distances(test_distances), use_preferred_operators(use_preferred_operators), successor_generator(nullptr) {
 }
 
 int PDBHeuristic::compute_heuristic(const State &ancestor_state) {
@@ -33,13 +45,34 @@ int PDBHeuristic::compute_heuristic(const State &ancestor_state) {
     if (h == numeric_limits<int>::max())
         return DEAD_END;
     
-    const vector<OperatorID> &preferred_ops = pdb->get_preferred_operators(state.get_unpacked_values());
+    if (use_preferred_operators == 2) { //live computation
+        if (!successor_generator) {
+            successor_generator = make_unique<successor_generator::SuccessorGenerator>(task_proxy);
+        }
 
-    for (OperatorID operator_no : preferred_ops) {
-        OperatorProxy op = task_proxy.get_operators()[operator_no];
-        assert(task_properties::is_applicable(op, state));
-        set_preferred(op);
-    } 
+        assert(successor_generator);
+        vector<OperatorID> applicable_operators;
+        successor_generator->generate_applicable_ops(state, applicable_operators);
+
+        for (const OperatorID op_id : applicable_operators) {
+            const OperatorProxy &op = task_proxy.get_operators()[op_id];
+            State succ = state.get_unregistered_successor(op); // find successors
+            int h_succ = pdb->get_value(succ.get_unpacked_values()); // find successors h value
+            if (h == op.get_cost() + h_succ && h_succ != numeric_limits<int>::max()) { 
+                set_preferred(op);
+            }
+        }
+    }
+    
+    if ( use_preferred_operators == 1) { //pre-computation of preferred operators 
+        const vector<OperatorID> &preferred_ops = pdb->get_preferred_operators(state.get_unpacked_values());
+
+        for (OperatorID operator_no : preferred_ops) {
+            OperatorProxy op = task_proxy.get_operators()[operator_no];
+            assert(task_properties::is_applicable(op, state));
+            set_preferred(op);
+        } 
+    }
 
    /* // print information
     int applicable_count = pdb->get_applicable_count(state.get_unpacked_values());
@@ -79,6 +112,8 @@ public:
 
         add_option<shared_ptr<PatternGenerator>>(
             "pattern", "pattern generation method", "greedy()");
+        add_option<bool>("test_distances", "run expensive tests to verify the distances are correct", "false");
+        add_option<int>("pref", "enable preferred operators: 0 for no PO, 1 for precomputation, 2 for live computation", "0");
         add_heuristic_options_to_feature(*this, "pdb");
 
         document_language_support("action costs", "supported");
@@ -94,7 +129,9 @@ public:
     virtual shared_ptr<PDBHeuristic> create_component(
         const plugins::Options &opts) const override {
         return plugins::make_shared_from_arg_tuples<PDBHeuristic>(
-            opts.get<shared_ptr<PatternGenerator>>("pattern"),
+            opts.get<shared_ptr<PatternGenerator>>("pattern"), 
+            opts.get<bool>("test_distances"),
+            opts.get<int>("pref"),
             get_heuristic_arguments_from_options(opts));
     }
 };

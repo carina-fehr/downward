@@ -19,9 +19,9 @@ bool PatternInformation::information_is_valid() const {
     return !pdb || pdb->get_pattern() == pattern;
 }
 
-void PatternInformation::create_pdb_if_missing() {
+void PatternInformation::create_pdb_if_missing(int use_preferred_operators) {
     if (!pdb) {
-        pdb = compute_pdb(task_proxy, pattern);
+        pdb = compute_pdb(task_proxy, pattern, vector<int>(), nullptr, use_preferred_operators);
     }
 }
 
@@ -34,8 +34,8 @@ const Pattern &PatternInformation::get_pattern() const {
     return pattern;
 }
 
-shared_ptr<PatternDatabase> PatternInformation::get_pdb() {
-    create_pdb_if_missing();
+shared_ptr<PatternDatabase> PatternInformation::get_pdb(int use_preferred_operators) {
+    create_pdb_if_missing(use_preferred_operators);
     return pdb;
 }
 }
