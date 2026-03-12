@@ -3,6 +3,7 @@
 #include "../task_utils/task_properties.h"
 #include "../utils/logging.h"
 #include "../utils/math.h"
+#include "../utils/rng.h"
 
 #include <cassert>
 #include <iostream>
@@ -72,6 +73,37 @@ double PatternDatabase::compute_mean_finite_h() const {
         return numeric_limits<double>::infinity();
     } else {
         return sum / size;
+    }
+}
+
+void PatternDatabase::distance_test(const State &start_state, const TaskProxy &task) const {
+    State state = start_state;
+    int h_start = get_value(start_state.get_unpacked_values());
+    int cost_sum = 0;
+    int h = h_start;
+    utils::RandomNumberGenerator rng;
+
+    while (h > 0) { // not reached goal state yet
+        int id = projection.rank(state.get_unpacked_values()); // get id of abstract state
+        const vector<OperatorID> &ops = preferred_operators[id];
+
+        if (ops.empty()) { // No preferred operator available for state
+            return;
+        }
+
+        OperatorID random_op_id = *rng.choose(ops);
+        const OperatorProxy &op = task.get_operators()[random_op_id]; 
+        State succ = state.get_unregistered_successor(op); 
+        int h_succ = get_value(succ.get_unpacked_values()); 
+        cost_sum += op.get_cost(); 
+        state = succ; 
+        h = h_succ;
+    }
+
+    //cout << "sum of cost: " << cost_sum << "; start h value: " << h_start << endl;
+    if (h_start != cost_sum) {
+        cout << "heuristic value from inital state not equal to sum of cost" << endl;
+        utils::exit_with(utils::ExitCode::SEARCH_CRITICAL_ERROR);
     }
 }
 }

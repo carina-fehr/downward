@@ -4,6 +4,7 @@
 #include "types.h"
 
 #include "../task_proxy.h"
+#include "pattern_information.h"
 
 #include <memory>
 #include <tuple>
@@ -27,7 +28,8 @@ extern std::shared_ptr<PatternDatabase> compute_pdb(
     const TaskProxy &task_proxy, const Pattern &pattern,
     const std::vector<int> &operator_costs = std::vector<int>(),
     const std::shared_ptr<utils::RandomNumberGenerator> &rng = nullptr, 
-    int use_preferred_operators = 0);
+    PreferredOperatorsType use_preferred_operators = PreferredOperatorsType::NONE,
+    bool test_distances = false);
 
 /*
   In addition to computing a PDB for the given task and pattern like
@@ -49,7 +51,8 @@ compute_pdb_and_plan(
     const TaskProxy &task_proxy, const Pattern &pattern,
     const std::vector<int> &operator_costs = std::vector<int>(),
     const std::shared_ptr<utils::RandomNumberGenerator> &rng = nullptr,
-    bool compute_wildcard_plan = false, int use_preferred_operators = 0);
+    bool compute_wildcard_plan = false, PreferredOperatorsType use_preferred_operators = PreferredOperatorsType::NONE,
+    bool test_distances = false);
 }
 
 #endif

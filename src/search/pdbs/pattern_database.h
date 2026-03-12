@@ -78,6 +78,7 @@ public:
       this method!
     */
     double compute_mean_finite_h() const;
+    void distance_test(const State &start_state, const TaskProxy &task) const;
 };
 }
 

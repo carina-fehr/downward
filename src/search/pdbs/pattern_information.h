@@ -12,6 +12,13 @@ class LogProxy;
 }
 
 namespace pdbs {
+
+enum class PreferredOperatorsType {
+    NONE, 
+    PRECOMPUTED,
+    LIVE
+}; 
+
 /*
   This class is a wrapper for a pair of a pattern and the corresponding PDB.
   It always contains a pattern and can contain the computed PDB. If the latter
@@ -28,7 +35,7 @@ class PatternInformation {
     Pattern pattern;
     std::shared_ptr<PatternDatabase> pdb;
 
-    void create_pdb_if_missing(int use_preferred_operators = 0);
+    void create_pdb_if_missing(PreferredOperatorsType use_preferred_operators = PreferredOperatorsType::NONE, bool test_distances = false);
 
     bool information_is_valid() const;
 public:
@@ -42,7 +49,7 @@ public:
     }
 
     const Pattern &get_pattern() const;
-    std::shared_ptr<PatternDatabase> get_pdb(int use_preferred_operators = 0);
+    std::shared_ptr<PatternDatabase> get_pdb(PreferredOperatorsType use_preferred_operators = PreferredOperatorsType::NONE, bool test_distances =false);
 };
 }
 

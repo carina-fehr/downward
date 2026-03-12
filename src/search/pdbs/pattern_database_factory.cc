@@ -3,6 +3,7 @@
 #include "abstract_operator.h"
 #include "match_tree.h"
 #include "pattern_database.h"
+#include "pattern_information.h"
 
 #include "../algorithms/priority_queues.h"
 #include "../task_utils/task_properties.h"
@@ -29,7 +30,7 @@ class PatternDatabaseFactory {
     vector<vector<OperatorID>> wildcard_plan;
     vector<vector<OperatorID>> preferred_operators;
     vector<int> applicable_op_counts;
-    int use_preferred_operators;
+    PreferredOperatorsType use_preferred_operators;
 
     void compute_variable_to_index(const Pattern &pattern);
 
@@ -99,7 +100,7 @@ public:
         bool compute_plan = false,
         const shared_ptr<utils::RandomNumberGenerator> &rng = nullptr,
         bool compute_wildcard_plan = false,
-        int use_preferred_operators = 0);
+        PreferredOperatorsType use_preferred_operators = PreferredOperatorsType::NONE);
     ~PatternDatabaseFactory() = default;
 
     shared_ptr<PatternDatabase> extract_pdb() {
@@ -337,12 +338,12 @@ void PatternDatabaseFactory::compute_distances(
                     generating_op_ids[predecessor] = op_id;
                 }
 
-                if (use_preferred_operators == 1) {
+                if (use_preferred_operators == PreferredOperatorsType::PRECOMPUTED) {
                     preferred_operators[predecessor].clear(); // clear because we found something better
                     preferred_operators[predecessor].push_back(OperatorID(abstract_ops[op_id].get_concrete_op_id())); // add element to the end of the vector
                 }
                 
-            } else if (alternative_cost == distances[predecessor] && use_preferred_operators == 1) {// found an equal operator (not better but also not worse)
+            } else if (alternative_cost == distances[predecessor] && use_preferred_operators == PreferredOperatorsType::PRECOMPUTED) {// found an equal operator (not better but also not worse)
                 if (op.get_cost() > 0) {
                     preferred_operators[predecessor].push_back(OperatorID(abstract_ops[op_id].get_concrete_op_id())); // also want to add this  the POs
                 }
@@ -417,7 +418,7 @@ PatternDatabaseFactory::PatternDatabaseFactory(
     const TaskProxy &task_proxy, const Pattern &pattern,
     const vector<int> &operator_costs, bool compute_plan,
     const shared_ptr<utils::RandomNumberGenerator> &rng,
-    bool compute_wildcard_plan, int use_preferred_operators)
+    bool compute_wildcard_plan, PreferredOperatorsType use_preferred_operators)
     : task_proxy(task_proxy),
       variables(task_proxy.get_variables()),
       projection(task_proxy, pattern),
@@ -440,10 +441,16 @@ shared_ptr<PatternDatabase> compute_pdb(
     const TaskProxy &task_proxy, const Pattern &pattern,
     const vector<int> &operator_costs,
     const shared_ptr<utils::RandomNumberGenerator> &rng,
-    int use_preferred_operators) {
+    PreferredOperatorsType use_preferred_operators, bool test_distances) {
     PatternDatabaseFactory pdb_factory(
         task_proxy, pattern, operator_costs, false, rng, false, use_preferred_operators);
-    return pdb_factory.extract_pdb();
+    State initial_state = task_proxy.get_initial_state();
+    initial_state.unpack();
+    shared_ptr<PatternDatabase> pdb = pdb_factory.extract_pdb();
+    if (test_distances) {
+        pdb->distance_test(initial_state, task_proxy);
+    }
+    return pdb;
 }
 
 tuple<shared_ptr<PatternDatabase>, vector<vector<OperatorID>>>
@@ -452,9 +459,15 @@ compute_pdb_and_plan(
     const vector<int> &operator_costs,
     const shared_ptr<utils::RandomNumberGenerator> &rng,
     bool compute_wildcard_plan, 
-    int use_preferred_operators) {
+    PreferredOperatorsType use_preferred_operators, bool test_distances) {
     PatternDatabaseFactory pdb_factory(
         task_proxy, pattern, operator_costs, true, rng, compute_wildcard_plan, use_preferred_operators);
-    return {pdb_factory.extract_pdb(), pdb_factory.extract_wildcard_plan()};
+    State initial_state = task_proxy.get_initial_state();
+    initial_state.unpack();
+    shared_ptr<PatternDatabase> pdb = pdb_factory.extract_pdb();
+    if (test_distances) {
+        pdb->distance_test(initial_state, task_proxy);
+    }
+    return {pdb, pdb_factory.extract_wildcard_plan()};
 }
 }

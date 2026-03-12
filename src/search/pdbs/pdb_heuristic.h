@@ -2,12 +2,9 @@
 #define PDBS_PDB_HEURISTIC_H
 
 #include "pattern_generator.h"
+#include "pattern_information.h"
 
 #include "../heuristic.h"
-
-namespace successor_generator {
-class SuccessorGenerator;
-}
 
 namespace pdbs {
 class PatternDatabase;
@@ -18,8 +15,7 @@ class PDBHeuristic : public Heuristic {
     bool test_distances;
 protected:
     virtual int compute_heuristic(const State &ancestor_state) override;
-    const int use_preferred_operators;
-    std::unique_ptr<successor_generator::SuccessorGenerator> successor_generator;
+    const PreferredOperatorsType use_preferred_operators;
 public:
     /*
       Important: It is assumed that the pattern (passed via
@@ -31,16 +27,11 @@ public:
        operator. This is useful for action cost partitioning. If left
        empty, default operator costs are used.
     */
-    PDBHeuristic(
-        const std::shared_ptr<PatternGenerator> &pattern_generator,
-        int use_preferred_operators,
-        const std::shared_ptr<AbstractTask> &transform, bool cache_estimates,
-        const std::string &description, utils::Verbosity verbosity);
 
     PDBHeuristic(
         const std::shared_ptr<PatternGenerator> &pattern_generator,
         bool test_distances, 
-        int use_preferred_operators, 
+        PreferredOperatorsType use_preferred_operators, 
         const std::shared_ptr<AbstractTask> &transform, bool cache_estimates,
         const std::string &description, utils::Verbosity verbosity);
 };

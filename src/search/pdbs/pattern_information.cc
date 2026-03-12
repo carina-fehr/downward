@@ -3,6 +3,7 @@
 #include "pattern_database.h"
 #include "pattern_database_factory.h"
 #include "validation.h"
+#include "pattern_information.h"
 
 #include <cassert>
 
@@ -19,9 +20,9 @@ bool PatternInformation::information_is_valid() const {
     return !pdb || pdb->get_pattern() == pattern;
 }
 
-void PatternInformation::create_pdb_if_missing(int use_preferred_operators) {
+void PatternInformation::create_pdb_if_missing(PreferredOperatorsType use_preferred_operators, bool test_distances) {
     if (!pdb) {
-        pdb = compute_pdb(task_proxy, pattern, vector<int>(), nullptr, use_preferred_operators);
+        pdb = compute_pdb(task_proxy, pattern, vector<int>(), nullptr, use_preferred_operators, test_distances);
     }
 }
 
@@ -34,8 +35,8 @@ const Pattern &PatternInformation::get_pattern() const {
     return pattern;
 }
 
-shared_ptr<PatternDatabase> PatternInformation::get_pdb(int use_preferred_operators) {
-    create_pdb_if_missing(use_preferred_operators);
+shared_ptr<PatternDatabase> PatternInformation::get_pdb(PreferredOperatorsType use_preferred_operators, bool test_distances) {
+    create_pdb_if_missing(use_preferred_operators, test_distances);
     return pdb;
 }
 }
