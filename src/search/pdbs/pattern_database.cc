@@ -102,7 +102,7 @@ void PatternDatabase::distance_test(const State &start_state, const TaskProxy &t
 
     //cout << "sum of cost: " << cost_sum << "; start h value: " << h_start << endl;
     if (h_start != cost_sum) {
-        cout << "heuristic value from inital state not equal to sum of cost" << endl;
+        cout << "heuristic value of initial state not equal to sum of cost" << endl;
         utils::exit_with(utils::ExitCode::SEARCH_CRITICAL_ERROR);
     }
 }

@@ -33,7 +33,7 @@ PDBHeuristic::PDBHeuristic(
     const shared_ptr<AbstractTask> &transform, bool cache_estimates,
     const string &description, utils::Verbosity verbosity)
     : Heuristic(transform, cache_estimates, description, verbosity),
-      pdb(get_pdb_from_generator(task, pattern, use_preferred_operators, test_distances)), test_distances(test_distances), use_preferred_operators(use_preferred_operators) {
+      pdb(get_pdb_from_generator(task, pattern, use_preferred_operators, test_distances)), use_preferred_operators(use_preferred_operators) {
 }
 
 int PDBHeuristic::compute_heuristic(const State &ancestor_state) {
@@ -42,7 +42,7 @@ int PDBHeuristic::compute_heuristic(const State &ancestor_state) {
     if (h == numeric_limits<int>::max())
         return DEAD_END;
     
-    if (use_preferred_operators == PreferredOperatorsType::LIVE) { //live computation
+    if (use_preferred_operators == PreferredOperatorsType::LIVE) { // live computation
         successor_generator::SuccessorGenerator &successor_generator =
          successor_generator::g_successor_generators[task_proxy];
 
@@ -59,7 +59,7 @@ int PDBHeuristic::compute_heuristic(const State &ancestor_state) {
         }
     }
     
-    if ( use_preferred_operators == PreferredOperatorsType::PRECOMPUTED) { //pre-computation of preferred operators 
+    if ( use_preferred_operators == PreferredOperatorsType::PRECOMPUTED) { // pre-computation of preferred operators 
         const vector<OperatorID> &preferred_ops = pdb->get_preferred_operators(state.get_unpacked_values());
 
         for (OperatorID operator_no : preferred_ops) {
