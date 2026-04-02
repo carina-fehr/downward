@@ -428,14 +428,19 @@ PatternDatabaseFactory::PatternDatabaseFactory(
         operator_costs.size() == task_proxy.get_operators().size());
     
     cout << "Building pattern database..."<< endl;
-    utils::Timer pdb_timer;
     compute_variable_to_index(pattern);
     compute_abstract_operators(operator_costs);
     unique_ptr<MatchTree> match_tree = compute_match_tree();
     compute_abstract_goals();
+    int peak_memory_before = utils::get_peak_memory_in_kb();
+    utils::Timer pdb_timer;
     compute_distances(*match_tree, compute_plan);
     pdb_timer.stop();
     cout << "done!" << endl;
+    int peak_memory_after = utils::get_peak_memory_in_kb();
+    int memory_diff = peak_memory_after - peak_memory_before;
+    cout << "peak memory difference for pattern database creation: "
+        << memory_diff << " KB" << endl;
     cout << "time for pattern database creation: "
     << pdb_timer << endl;
 
