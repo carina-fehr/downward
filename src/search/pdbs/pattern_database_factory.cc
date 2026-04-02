@@ -345,7 +345,7 @@ void PatternDatabaseFactory::compute_distances(
                 
             } else if (alternative_cost == distances[predecessor] && use_preferred_operators == PreferredOperatorsType::PRECOMPUTED) {// found an equal operator (not better but also not worse)
                 if (op.get_cost() > 0) {
-                    preferred_operators[predecessor].push_back(OperatorID(abstract_ops[op_id].get_concrete_op_id())); // also want to add this  the POs
+                    preferred_operators[predecessor].push_back(OperatorID(abstract_ops[op_id].get_concrete_op_id())); // also want to add this to the POs
                 }
             }
         }
@@ -426,11 +426,18 @@ PatternDatabaseFactory::PatternDatabaseFactory(
     assert(
         operator_costs.empty() ||
         operator_costs.size() == task_proxy.get_operators().size());
+    
+    cout << "Building pattern database..."<< endl;
+    utils::Timer pdb_timer;
     compute_variable_to_index(pattern);
     compute_abstract_operators(operator_costs);
     unique_ptr<MatchTree> match_tree = compute_match_tree();
     compute_abstract_goals();
     compute_distances(*match_tree, compute_plan);
+    pdb_timer.stop();
+    cout << "done!" << endl;
+    cout << "time for pattern database creation: "
+    << pdb_timer << endl;
 
     if (compute_plan) {
         this->compute_plan(*match_tree, rng, compute_wildcard_plan);
