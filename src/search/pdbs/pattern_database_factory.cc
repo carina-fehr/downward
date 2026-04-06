@@ -9,6 +9,7 @@
 #include "../task_utils/task_properties.h"
 #include "../utils/math.h"
 #include "../utils/rng.h"
+#include "../utils/logging.h"
 
 #include <algorithm>
 #include <cassert>
@@ -427,7 +428,7 @@ PatternDatabaseFactory::PatternDatabaseFactory(
         operator_costs.empty() ||
         operator_costs.size() == task_proxy.get_operators().size());
     
-    cout << "Building pattern database..."<< endl;
+    utils::g_log << "Building pattern database..."<< endl;
     compute_variable_to_index(pattern);
     compute_abstract_operators(operator_costs);
     unique_ptr<MatchTree> match_tree = compute_match_tree();
@@ -436,12 +437,12 @@ PatternDatabaseFactory::PatternDatabaseFactory(
     utils::Timer pdb_timer;
     compute_distances(*match_tree, compute_plan);
     pdb_timer.stop();
-    cout << "done!" << endl;
+    utils::g_log << "done!" << endl;
     int peak_memory_after = utils::get_peak_memory_in_kb();
     int memory_diff = peak_memory_after - peak_memory_before;
-    cout << "peak memory difference for pattern database creation: "
+    utils::g_log << "peak memory difference for pattern database creation: "
         << memory_diff << " KB" << endl;
-    cout << "time for pattern database creation: "
+    utils::g_log << "time for pattern database creation: "
     << pdb_timer << endl;
 
     if (compute_plan) {
