@@ -638,6 +638,7 @@ public:
         */
         add_canonical_pdbs_options_to_feature(*this);
         add_heuristic_options_to_feature(*this, "cpdbs");
+        add_option<bool>("pref", "enable live preferred operators", "false");
 
         document_language_support("action costs", "supported");
         document_language_support("conditional effects", "not supported");
@@ -646,7 +647,7 @@ public:
         document_property("admissible", "yes");
         document_property("consistent", "yes");
         document_property("safe", "yes");
-        document_property("preferred operators", "no");
+        document_property("preferred operators", "yes");
     }
 
     virtual shared_ptr<CanonicalPDBsHeuristic> create_component(
@@ -659,6 +660,7 @@ public:
 
         return plugins::make_shared_from_arg_tuples<CanonicalPDBsHeuristic>(
             pgh, opts.get<double>("max_time_dominance_pruning"),
+            opts.get<bool>("pref"),
             get_heuristic_arguments_from_options(opts));
     }
 };

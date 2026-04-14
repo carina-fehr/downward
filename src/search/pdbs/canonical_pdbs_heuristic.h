@@ -17,11 +17,12 @@ class CanonicalPDBsHeuristic : public Heuristic {
 
 protected:
     virtual int compute_heuristic(const State &ancestor_state) override;
+    bool use_preferred_operators;
 
 public:
     CanonicalPDBsHeuristic(
         const std::shared_ptr<PatternCollectionGenerator> &patterns,
-        double max_time_dominance_pruning,
+        double max_time_dominance_pruning, bool use_preferred_operators,
         const std::shared_ptr<AbstractTask> &transform, bool cache_estimates,
         const std::string &description, utils::Verbosity verbosity);
 };

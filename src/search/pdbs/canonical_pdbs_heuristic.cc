@@ -6,6 +6,7 @@
 #include "../plugins/plugin.h"
 #include "../utils/logging.h"
 #include "../utils/timer.h"
+#include "../task_utils/successor_generator.h"
 
 #include <iostream>
 #include <limits>
@@ -58,12 +59,13 @@ static CanonicalPDBs get_canonical_pdbs(
 
 CanonicalPDBsHeuristic::CanonicalPDBsHeuristic(
     const shared_ptr<PatternCollectionGenerator> &patterns,
-    double max_time_dominance_pruning,
+    double max_time_dominance_pruning,  
+    bool use_preferred_operators,
     const shared_ptr<AbstractTask> &transform, bool cache_estimates,
     const string &description, utils::Verbosity verbosity)
     : Heuristic(transform, cache_estimates, description, verbosity),
       canonical_pdbs(
-          get_canonical_pdbs(task, patterns, max_time_dominance_pruning, log)) {
+          get_canonical_pdbs(task, patterns, max_time_dominance_pruning, log)), use_preferred_operators(use_preferred_operators) {
 }
 
 int CanonicalPDBsHeuristic::compute_heuristic(const State &ancestor_state) {
@@ -72,6 +74,22 @@ int CanonicalPDBsHeuristic::compute_heuristic(const State &ancestor_state) {
     if (h == numeric_limits<int>::max()) {
         return DEAD_END;
     } else {
+        if (use_preferred_operators == true) { // live computation
+            successor_generator::SuccessorGenerator &successor_generator = 
+             successor_generator::g_successor_generators[task_proxy];
+
+            vector<OperatorID> applicable_operators;
+            successor_generator.generate_applicable_ops(state, applicable_operators);
+
+            for (const OperatorID op_id : applicable_operators) {
+                const OperatorProxy &op = task_proxy.get_operators()[op_id];
+                State succ = state.get_unregistered_successor(op); // find successors
+                int h_succ = canonical_pdbs.get_value(succ); // find successors h value
+                if (h == op.get_cost() + h_succ && h_succ != numeric_limits<int>::max()) { 
+                    set_preferred(op);
+                }
+            }
+        }
         return h;
     }
 }
@@ -107,6 +125,7 @@ public:
 
         add_option<shared_ptr<PatternCollectionGenerator>>(
             "patterns", "pattern generation method", "systematic(1)");
+        add_option<bool>("pref", "enable live preferred operators", "false");
         add_canonical_pdbs_options_to_feature(*this);
         add_heuristic_options_to_feature(*this, "cpdbs");
 
@@ -117,7 +136,7 @@ public:
         document_property("admissible", "yes");
         document_property("consistent", "yes");
         document_property("safe", "yes");
-        document_property("preferred operators", "no");
+        document_property("preferred operators", "yes");
     }
 
     virtual shared_ptr<CanonicalPDBsHeuristic> create_component(
@@ -125,6 +144,7 @@ public:
         return plugins::make_shared_from_arg_tuples<CanonicalPDBsHeuristic>(
             opts.get<shared_ptr<PatternCollectionGenerator>>("patterns"),
             get_canonical_pdbs_arguments_from_options(opts),
+            opts.get<bool>("pref"),
             get_heuristic_arguments_from_options(opts));
     }
 };
