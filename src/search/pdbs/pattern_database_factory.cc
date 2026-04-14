@@ -30,7 +30,6 @@ class PatternDatabaseFactory {
     vector<int> generating_op_ids;
     vector<vector<OperatorID>> wildcard_plan;
     vector<vector<OperatorID>> preferred_operators;
-    vector<int> applicable_op_counts;
     PreferredOperatorsType use_preferred_operators;
 
     void compute_variable_to_index(const Pattern &pattern);
@@ -105,7 +104,7 @@ public:
     ~PatternDatabaseFactory() = default;
 
     shared_ptr<PatternDatabase> extract_pdb() {
-        return make_shared<PatternDatabase>(move(projection), move(distances), move(preferred_operators), move(applicable_op_counts));
+        return make_shared<PatternDatabase>(move(projection), move(distances), move(preferred_operators));
     }
 
     vector<vector<OperatorID>> &&extract_wildcard_plan() {
@@ -282,7 +281,6 @@ void PatternDatabaseFactory::compute_distances(
     const MatchTree &match_tree, bool compute_plan) {
     distances.reserve(projection.get_num_abstract_states());
     preferred_operators.resize(projection.get_num_abstract_states()); //creates vector where each entry is a vector
-    applicable_op_counts.resize(projection.get_num_abstract_states());
 
     // first implicit entry: priority, second entry: index for an abstract state
     priority_queues::AdaptiveQueue<int> pq;
@@ -325,9 +323,6 @@ void PatternDatabaseFactory::compute_distances(
         vector<int> applicable_operator_ids;
         match_tree.get_applicable_operator_ids(
             state_index, applicable_operator_ids);
-        
-        applicable_op_counts[state_index] = applicable_operator_ids.size(); // stores amount of applicable ops in this state
-
         for (int op_id : applicable_operator_ids) {
             const AbstractOperator &op = abstract_ops[op_id];
             int predecessor = state_index + op.get_hash_effect();

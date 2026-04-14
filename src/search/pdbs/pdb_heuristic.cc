@@ -68,12 +68,6 @@ int PDBHeuristic::compute_heuristic(const State &ancestor_state) {
             set_preferred(op);
         } 
     }
-
-   /* // print information
-    int applicable_count = pdb->get_applicable_count(state.get_unpacked_values());
-
-    std::cout << "h=" << h << " ; preferred: " << preferred_ops.size() << " ; applicable: " << applicable_count << std::endl;
-    */
     return h;
 }
 
