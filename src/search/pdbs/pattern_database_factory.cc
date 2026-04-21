@@ -335,12 +335,16 @@ void PatternDatabaseFactory::compute_distances(
                 }
 
                 if (use_preferred_operators == PreferredOperatorsType::PRECOMPUTED) {
-                    preferred_operators[predecessor].clear(); // clear because we found something better
-                    preferred_operators[predecessor].push_back(OperatorID(abstract_ops[op_id].get_concrete_op_id())); // add element to the end of the vector
+                    if (op.get_cost() > 0) {
+                        preferred_operators[predecessor].clear(); // clear because we found something better
+                        preferred_operators[predecessor].push_back(OperatorID(abstract_ops[op_id].get_concrete_op_id())); // add element to the end of the vector
+                    }
                 }
                 
             } else if (alternative_cost == distances[predecessor] && use_preferred_operators == PreferredOperatorsType::PRECOMPUTED) { // found an equal operator (not better but also not worse)
+                if (op.get_cost() > 0) { 
                     preferred_operators[predecessor].push_back(OperatorID(abstract_ops[op_id].get_concrete_op_id())); // also want to add this to the POs
+                }
             }
         }
     }

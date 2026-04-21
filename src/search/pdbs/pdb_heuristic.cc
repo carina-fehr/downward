@@ -54,7 +54,9 @@ int PDBHeuristic::compute_heuristic(const State &ancestor_state) {
             State succ = state.get_unregistered_successor(op); // find successors
             int h_succ = pdb->get_value(succ.get_unpacked_values()); // find successors h value
             if (h == op.get_cost() + h_succ && h_succ != numeric_limits<int>::max()) { 
-                set_preferred(op);
+                if (op.get_cost() > 0) {
+                    set_preferred(op);
+                }
             }
         }
     }
