@@ -10,6 +10,7 @@
 #include "../utils/markup.h"
 #include "../utils/rng.h"
 #include "../utils/rng_options.h"
+#include "../task_utils/successor_generator.h"
 
 #include <cassert>
 
@@ -34,13 +35,13 @@ static vector<CartesianHeuristicFunction> generate_heuristic_functions(
 AdditiveCartesianHeuristic::AdditiveCartesianHeuristic(
     const vector<shared_ptr<SubtaskGenerator>> &subtasks, int max_states,
     int max_transitions, double max_time, PickSplit pick,
-    bool use_general_costs, int random_seed,
+    bool use_general_costs, bool use_preferred_operators, int random_seed,
     const shared_ptr<AbstractTask> &transform, bool cache_estimates,
     const string &description, utils::Verbosity verbosity)
     : Heuristic(transform, cache_estimates, description, verbosity),
       heuristic_functions(generate_heuristic_functions(
           subtasks, max_states, max_transitions, max_time, pick,
-          use_general_costs, random_seed, transform, log)) {
+          use_general_costs, random_seed, transform, log)), use_preferred_operators(use_preferred_operators) {
 }
 
 int AdditiveCartesianHeuristic::compute_heuristic(const State &ancestor_state) {
@@ -52,6 +53,32 @@ int AdditiveCartesianHeuristic::compute_heuristic(const State &ancestor_state) {
         if (value == INF)
             return DEAD_END;
         sum_h += value;
+    }
+
+    if (use_preferred_operators == true) {
+        successor_generator::SuccessorGenerator &successor_generator =
+         successor_generator::g_successor_generators[task_proxy];
+        
+        vector<OperatorID> applicable_operators;
+        successor_generator.generate_applicable_ops(state, applicable_operators);
+
+        for (const OperatorID op_id : applicable_operators) {
+            const OperatorProxy &op = task_proxy.get_operators()[op_id];
+            State succ = state.get_unregistered_successor(op); // find successors
+            int sum_h_succ = 0;
+            for (const CartesianHeuristicFunction &function : heuristic_functions) { // find successors h value
+                int h_succ = function.get_value(succ);
+                if (h_succ == INF) {
+                    sum_h_succ = INF;
+                    break;
+                }
+                sum_h_succ += h_succ;
+            }
+
+            if (sum_h == op.get_cost() + sum_h_succ && sum_h_succ != INF) {
+                set_preferred(op);
+            }
+        }
     }
     assert(sum_h >= 0);
     return sum_h;
@@ -110,6 +137,7 @@ public:
         add_option<bool>(
             "use_general_costs", "allow negative costs in cost partitioning",
             "true");
+        add_option<bool>("pref", "enable live preferred operators", "false");
         utils::add_rng_options_to_feature(*this);
         add_heuristic_options_to_feature(*this, "cegar");
 
@@ -120,7 +148,7 @@ public:
         document_property("admissible", "yes");
         document_property("consistent", "yes");
         document_property("safe", "yes");
-        document_property("preferred operators", "no");
+        document_property("preferred operators", "yes");
     }
 
     virtual shared_ptr<AdditiveCartesianHeuristic> create_component(
@@ -129,7 +157,7 @@ public:
             opts.get_list<shared_ptr<SubtaskGenerator>>("subtasks"),
             opts.get<int>("max_states"), opts.get<int>("max_transitions"),
             opts.get<double>("max_time"), opts.get<PickSplit>("pick"),
-            opts.get<bool>("use_general_costs"),
+            opts.get<bool>("use_general_costs"), opts.get<bool>("pref"),
             utils::get_rng_arguments_from_options(opts),
             get_heuristic_arguments_from_options(opts));
     }
